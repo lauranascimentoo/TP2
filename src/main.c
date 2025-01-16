@@ -35,11 +35,19 @@ int main() {
     char linha[256];
     // Ignora as primeiras linhas de configuração
     for (int i = 0; i < 6; i++) {
-        fgets(linha, sizeof(linha), entrada);
+        if (!fgets(linha, sizeof(linha), entrada)) {
+            fprintf(stderr, "Erro ao ler as linhas de configuração\n");
+            fclose(entrada);
+            return EXIT_FAILURE;
+        }
     }
 
     // Lê pacientes do arquivo
     while (fgets(linha, sizeof(linha), entrada)) {
+        if (totalPacientes >= MAX_EVENTOS) {
+            fprintf(stderr, "Erro: Excedido o número máximo de pacientes\n");
+            break;
+        }
         inicializaPaciente(&pacientes[totalPacientes], linha);
         Evento eventoInicial = criaEvento(
             transformaHoras(pacientes[totalPacientes].ano, pacientes[totalPacientes].mes, pacientes[totalPacientes].dia, pacientes[totalPacientes].hora),
@@ -67,7 +75,11 @@ int main() {
         // Processa o evento com base no tipo
         switch (evento.tipo) {
             case EVENTO_CHEGADA:
-                Enfileira(&filas[0], evento.paciente, tempoAtual); // Exemplo: Enfileira na fila de triagem
+                if (evento.paciente) {
+                    Enfileira(&filas[0], evento.paciente, tempoAtual); // Exemplo: Enfileira na fila de triagem
+                } else {
+                    fprintf(stderr, "Erro: Paciente nulo no evento de chegada\n");
+                }
                 break;
 
             case EVENTO_TRIAGEM:
