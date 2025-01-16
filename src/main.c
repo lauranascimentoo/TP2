@@ -96,18 +96,43 @@ int main() {
         switch (evento.tipo) {
             case EVENTO_CHEGADA:
                 if (evento.paciente) {
-                    Enfileira(&filas[0], evento.paciente, tempoAtual); // Exemplo: Enfileira na fila de triagem
+                    Enfileira(&filas[0], evento.paciente, tempoAtual);
                 } else {
                     fprintf(stderr, "Erro: Paciente nulo no evento de chegada\n");
                 }
                 break;
 
             case EVENTO_TRIAGEM:
-                // Processa evento de triagem e agenda próximos eventos
+                if (evento.paciente) {
+                    Desenfileira(&filas[0], tempoAtual);
+                    evento.paciente->prioridade = rand() % 3; // Exemplo de triagem
+                    Evento proxEvento = criaEvento(
+                        tempoAtual + 1.0, // Tempo fictício para próximo estado
+                        EVENTO_ATENDIMENTO,
+                        evento.paciente
+                    );
+                    insereEvento(&escalonador, proxEvento);
+                }
+                break;
+
+            case EVENTO_ATENDIMENTO:
+                if (evento.paciente) {
+                    calculaTempoFila(evento.paciente, evento.paciente->horaEntrada, tempoAtual);
+                    calculaTempoAtendimento(evento.paciente, tempoAtual, tempoAtual + 1.0);
+                    Evento altaEvento = criaEvento(
+                        tempoAtual + 1.0, // Tempo fictício para alta
+                        EVENTO_ALTA,
+                        evento.paciente
+                    );
+                    insereEvento(&escalonador, altaEvento);
+                }
                 break;
 
             case EVENTO_ALTA:
-                // Finaliza atendimento do paciente
+                if (evento.paciente) {
+                    // Finaliza atendimento e registra saída
+                    evento.paciente->horaSaida = tempoAtual;
+                }
                 break;
 
             default:
@@ -127,8 +152,11 @@ int main() {
     }
 
     for (int i = 0; i < totalPacientes; i++) {
-        fprintf(saida, "%s %.2f %.2f %.2f\n",
+        int ano, mes, dia, hora;
+        transformaData(pacientes[i].horaEntrada, &ano, &mes, &dia, &hora);
+        fprintf(saida, "%s %02d/%02d/%04d %02d:00 %.2f %.2f %.2f\n",
                 pacientes[i].id,
+                dia, mes, ano, hora,
                 pacientes[i].tempoEspera + pacientes[i].tempoAtendimento,
                 pacientes[i].tempoAtendimento,
                 pacientes[i].tempoEspera);

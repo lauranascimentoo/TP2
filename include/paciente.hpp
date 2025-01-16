@@ -37,6 +37,7 @@ void avancaEstado(Paciente *paciente);
 
 // Tempo total oscioso (soma dos tempos de fila - acumula na variável tempoOcioso do paciente)
 void calculaTempoOscioso(Paciente *paciente, float horaEntrada, float horaSaida); 
+void calculaTempoFila(Paciente *paciente, float horaEntrada, float horaSaida);
 
 // Tempo total em atendimento (soma dos tempos de procedimentos feitos  - acumula na variável tempoAtendimento do paciente)
 void calculaTempoAtendimento(Paciente *paciente, float horaEntrada, float horaSaida); 
