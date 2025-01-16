@@ -6,19 +6,19 @@
 #include "escalonador.hpp"
 #include "fila.hpp"
 
-#define MAX_EVENTOS 1000
 #define MAX_FILAS 16
 
 int main() {
     // Variáveis principais
     Escalonador escalonador;
     Fila filas[MAX_FILAS];
-    Paciente pacientes[MAX_EVENTOS];
+    Paciente *pacientes = NULL;
     int totalPacientes = 0;
+    int capacidadePacientes = 0;
     float tempoAtual = 0.0f;
 
     // Inicializa o escalonador
-    inicializaEscalonador(&escalonador, MAX_EVENTOS);
+    inicializaEscalonador(&escalonador, 1000); // Capacidade inicial arbitrária
 
     // Inicializa as filas
     for (int i = 0; i < MAX_FILAS; i++) {
@@ -33,7 +33,7 @@ int main() {
     }
 
     char linha[256];
-    // Ignora as primeiras linhas de configuração
+    // Ignora as primeiras 6 linhas de configuração
     for (int i = 0; i < 6; i++) {
         if (!fgets(linha, sizeof(linha), entrada)) {
             fprintf(stderr, "Erro ao ler as linhas de configuração\n");
@@ -42,10 +42,30 @@ int main() {
         }
     }
 
+    // Lê o valor da linha 7 para determinar MAX_EVENTOS
+    if (fgets(linha, sizeof(linha), entrada)) {
+        capacidadePacientes = atoi(linha);
+        if (capacidadePacientes <= 0) {
+            fprintf(stderr, "Erro: Valor inválido para o número de pacientes\n");
+            fclose(entrada);
+            return EXIT_FAILURE;
+        }
+        pacientes = (Paciente *)malloc(capacidadePacientes * sizeof(Paciente));
+        if (!pacientes) {
+            perror("Erro ao alocar memória para pacientes");
+            fclose(entrada);
+            return EXIT_FAILURE;
+        }
+    } else {
+        fprintf(stderr, "Erro ao ler o número de pacientes\n");
+        fclose(entrada);
+        return EXIT_FAILURE;
+    }
+
     // Lê pacientes do arquivo
     while (fgets(linha, sizeof(linha), entrada)) {
-        if (totalPacientes >= MAX_EVENTOS) {
-            fprintf(stderr, "Erro: Excedido o número máximo de pacientes\n");
+        if (totalPacientes >= capacidadePacientes) {
+            fprintf(stderr, "Erro: Excedido o número de pacientes esperado\n");
             break;
         }
         inicializaPaciente(&pacientes[totalPacientes], linha);
@@ -102,6 +122,7 @@ int main() {
     FILE *saida = fopen("saida.txt", "w");
     if (!saida) {
         perror("Erro ao criar arquivo de saída");
+        free(pacientes);
         return EXIT_FAILURE;
     }
 
@@ -121,5 +142,6 @@ int main() {
         Finaliza(&filas[i]);
     }
 
+    free(pacientes);
     return 0;
 }
