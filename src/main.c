@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "paciente.hpp"
 #include "procedimento.hpp"
 #include "evento.hpp"
@@ -7,6 +8,20 @@
 #include "fila.hpp"
 
 #define MAX_FILAS 16
+
+const char *diasSemana[] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
+
+int calculaDiaDaSemana(int ano, int mes, int dia) {
+    // Fórmula de Zeller para calcular o dia da semana
+    if (mes < 3) {
+        mes += 12;
+        ano--;
+    }
+    int k = ano % 100;
+    int j = ano / 100;
+    int h = (dia + 13 * (mes + 1) / 5 + k + k / 4 + j / 4 - 2 * j) % 7;
+    return ((h + 5) % 7) + 1; // Ajusta para 0 = Domingo, 1 = Segunda...
+}
 
 int main() {
     // Variáveis principais
@@ -19,12 +34,10 @@ int main() {
 
     // Inicializa o escalonador
     inicializaEscalonador(&escalonador, 1000); // Capacidade inicial arbitrária
-    printf("Escalonador inicializado com capacidade de 1000 eventos.\n");
 
     // Inicializa as filas
     for (int i = 0; i < MAX_FILAS; i++) {
         Inicializa(&filas[i]);
-        printf("Fila %d inicializada.\n", i);
     }
 
     // Ler arquivo de entrada e criar pacientes e eventos iniciais
@@ -35,21 +48,25 @@ int main() {
     }
 
     char linha[256];
-    // Ignora as primeiras 6 linhas de configuração
+    float temposProcedimentos[6];
+    int unidadesProcedimentos[6];
+
+    // Lê tempos e unidades para os procedimentos
     for (int i = 0; i < 6; i++) {
-        if (!fgets(linha, sizeof(linha), entrada)) {
-            fprintf(stderr, "Erro ao ler as linhas de configuração\n");
+        if (fgets(linha, sizeof(linha), entrada)) {
+            sscanf(linha, "%f %d", &temposProcedimentos[i], &unidadesProcedimentos[i]);
+        } else {
+            fprintf(stderr, "Erro ao ler configuração dos procedimentos\n");
             fclose(entrada);
             return EXIT_FAILURE;
         }
     }
 
-    // Lê o valor da linha 7 para determinar MAX_EVENTOS
+    // Lê o número de pacientes
     if (fgets(linha, sizeof(linha), entrada)) {
         capacidadePacientes = atoi(linha);
-        printf("Capacidade de pacientes definida como: %d\n", capacidadePacientes);
         if (capacidadePacientes <= 0) {
-            fprintf(stderr, "Erro: Valor inválido para o número de pacientes\n");
+            fprintf(stderr, "Erro: Número inválido de pacientes\n");
             fclose(entrada);
             return EXIT_FAILURE;
         }
@@ -59,10 +76,6 @@ int main() {
             fclose(entrada);
             return EXIT_FAILURE;
         }
-    } else {
-        fprintf(stderr, "Erro ao ler o número de pacientes\n");
-        fclose(entrada);
-        return EXIT_FAILURE;
     }
 
     // Lê pacientes do arquivo
@@ -80,7 +93,6 @@ int main() {
         );
         Evento eventoInicial = criaEvento(tempoEntrada, EVENTO_CHEGADA, &pacientes[totalPacientes]);
         insereEvento(&escalonador, eventoInicial);
-        printf("Paciente %s agendado para chegada no tempo %.2f\n", pacientes[totalPacientes].id, tempoEntrada);
         totalPacientes++;
     }
 
@@ -97,56 +109,33 @@ int main() {
 
         // Atualiza o tempo atual
         tempoAtual = evento.tempo;
-        printf("Processando evento no tempo %.2f\n", tempoAtual);
 
         // Processa o evento com base no tipo
         switch (evento.tipo) {
             case EVENTO_CHEGADA:
-                if (evento.paciente) {
-                    Enfileira(&filas[0], evento.paciente, tempoAtual);
-                    printf("Paciente %s enfileirado na triagem no tempo %.2f\n", evento.paciente->id, tempoAtual);
-                } else {
-                    fprintf(stderr, "Erro: Paciente nulo no evento de chegada\n");
-                }
+                Enfileira(&filas[0], evento.paciente, tempoAtual);
                 break;
 
             case EVENTO_TRIAGEM:
-                if (evento.paciente) {
-                    Desenfileira(&filas[0], tempoAtual);
-                    evento.paciente->prioridade = rand() % 3; // Exemplo de triagem
-                    printf("Paciente %s triado com prioridade %d\n", evento.paciente->id, evento.paciente->prioridade);
-                    Evento proxEvento = criaEvento(
-                        tempoAtual + 1.0, // Tempo fictício para próximo estado
-                        EVENTO_ATENDIMENTO,
-                        evento.paciente
-                    );
-                    insereEvento(&escalonador, proxEvento);
-                }
+                Desenfileira(&filas[0], tempoAtual);
+                evento.paciente->prioridade = rand() % 3; // Simula triagem
+                Evento proxEvento = criaEvento(tempoAtual + temposProcedimentos[0], EVENTO_ATENDIMENTO, evento.paciente);
+                insereEvento(&escalonador, proxEvento);
                 break;
 
             case EVENTO_ATENDIMENTO:
-                if (evento.paciente) {
-                    calculaTempoFila(evento.paciente, evento.paciente->horaEntrada, tempoAtual);
-                    calculaTempoAtendimento(evento.paciente, tempoAtual, tempoAtual + 1.0);
-                    printf("Paciente %s atendido por 1.0 hora\n", evento.paciente->id);
-                    Evento altaEvento = criaEvento(
-                        tempoAtual + 1.0, // Tempo fictício para alta
-                        EVENTO_ALTA,
-                        evento.paciente
-                    );
-                    insereEvento(&escalonador, altaEvento);
-                }
+                calculaTempoFila(evento.paciente, evento.paciente->horaEntrada, tempoAtual);
+                calculaTempoAtendimento(evento.paciente, tempoAtual, tempoAtual + temposProcedimentos[1]);
+                Evento altaEvento = criaEvento(tempoAtual + temposProcedimentos[1], EVENTO_ALTA, evento.paciente);
+                insereEvento(&escalonador, altaEvento);
                 break;
 
             case EVENTO_ALTA:
-                if (evento.paciente) {
-                    evento.paciente->horaSaida = tempoAtual;
-                    printf("Paciente %s recebeu alta no tempo %.2f\n", evento.paciente->id, tempoAtual);
-                }
+                evento.paciente->horaSaida = tempoAtual;
                 break;
 
             default:
-                fprintf(stderr, "Tipo de evento desconhecido\n");
+                fprintf(stderr, "Erro: Tipo de evento desconhecido\n");
                 break;
         }
     }
@@ -160,11 +149,21 @@ int main() {
     }
 
     for (int i = 0; i < totalPacientes; i++) {
-        int ano, mes, dia, hora;
-        transformaData(pacientes[i].horaEntrada, &ano, &mes, &dia, &hora);
-        fprintf(saida, "%s %02d/%02d/%04d %02d:00 %.2f %.2f %.2f\n",
+        int anoEntrada, mesEntrada, diaEntrada, horaEntrada;
+        int anoSaida, mesSaida, diaSaida, horaSaida;
+        transformaData(
+            transformaHoras(pacientes[i].ano, pacientes[i].mes, pacientes[i].dia, pacientes[i].hora),
+            &anoEntrada, &mesEntrada, &diaEntrada, &horaEntrada
+        );
+        transformaData(pacientes[i].horaSaida, &anoSaida, &mesSaida, &diaSaida, &horaSaida);
+
+        int diaSemanaEntrada = calculaDiaDaSemana(pacientes[i].ano, pacientes[i].mes, pacientes[i].dia);
+        int diaSemanaSaida = calculaDiaDaSemana(anoSaida, mesSaida, diaSaida);
+
+        fprintf(saida, "%s %s %02d %02d:%02d %04d %s %02d %02d:%02d %04d %.2f %.2f %.2f\n",
                 pacientes[i].id,
-                dia, mes, ano, hora,
+                diasSemana[diaSemanaEntrada], mesEntrada, diaEntrada, horaEntrada, anoEntrada,
+                diasSemana[diaSemanaSaida], mesSaida, diaSaida, horaSaida, anoSaida,
                 pacientes[i].tempoEspera + pacientes[i].tempoAtendimento,
                 pacientes[i].tempoAtendimento,
                 pacientes[i].tempoEspera);
