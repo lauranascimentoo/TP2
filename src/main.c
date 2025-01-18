@@ -10,6 +10,7 @@
 #define MAX_FILAS 16
 
 const char *diasSemana[] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
+const char *meses[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
 
 int calculaDiaDaSemana(int ano, int mes, int dia) {
     // Fórmula de Zeller para calcular o dia da semana
@@ -33,14 +34,14 @@ int main() {
     float tempoAtual = 0.0f;
 
     // Inicializa o escalonador
-    inicializaEscalonador(&escalonador, 1000); // Capacidade inicial arbitrária
+    inicializaEscalonador(&escalonador, 1000);
 
     // Inicializa as filas
     for (int i = 0; i < MAX_FILAS; i++) {
         Inicializa(&filas[i]);
     }
 
-    // Ler arquivo de entrada e criar pacientes e eventos iniciais
+    // Ler arquivo de entrada
     FILE *entrada = fopen("20242TP2.csv", "r");
     if (!entrada) {
         perror("Erro ao abrir o arquivo de entrada");
@@ -100,17 +101,12 @@ int main() {
 
     // Loop principal da simulação
     while (escalonador.tamanho > 0) {
-        // Retira o próximo evento
         Evento evento;
         if (!retiraProximoEvento(&escalonador, &evento)) {
             fprintf(stderr, "Erro ao retirar evento do escalonador\n");
             break;
         }
-
-        // Atualiza o tempo atual
         tempoAtual = evento.tempo;
-
-        // Processa o evento com base no tipo
         switch (evento.tipo) {
             case EVENTO_CHEGADA:
                 Enfileira(&filas[0], evento.paciente, tempoAtual);
@@ -118,7 +114,7 @@ int main() {
 
             case EVENTO_TRIAGEM:
                 Desenfileira(&filas[0], tempoAtual);
-                evento.paciente->prioridade = rand() % 3; // Simula triagem
+                evento.paciente->prioridade = rand() % 3;
                 Evento proxEvento = criaEvento(tempoAtual + temposProcedimentos[0], EVENTO_ATENDIMENTO, evento.paciente);
                 insereEvento(&escalonador, proxEvento);
                 break;
@@ -150,33 +146,25 @@ int main() {
 
     for (int i = 0; i < totalPacientes; i++) {
         int anoEntrada, mesEntrada, diaEntrada, horaEntrada;
-        int anoSaida, mesSaida, diaSaida, horaSaida;
         transformaData(
             transformaHoras(pacientes[i].ano, pacientes[i].mes, pacientes[i].dia, pacientes[i].hora),
             &anoEntrada, &mesEntrada, &diaEntrada, &horaEntrada
         );
-        transformaData(pacientes[i].horaSaida, &anoSaida, &mesSaida, &diaSaida, &horaSaida);
 
         int diaSemanaEntrada = calculaDiaDaSemana(pacientes[i].ano, pacientes[i].mes, pacientes[i].dia);
-        int diaSemanaSaida = calculaDiaDaSemana(anoSaida, mesSaida, diaSaida);
 
-        fprintf(saida, "%s %s %02d %02d:%02d %04d %s %02d %02d:%02d %04d %.2f %.2f %.2f\n",
+        fprintf(saida, "%s %s %s %02d %02d:00 %04d\n",
                 pacientes[i].id,
-                diasSemana[diaSemanaEntrada], mesEntrada, diaEntrada, horaEntrada, anoEntrada,
-                diasSemana[diaSemanaSaida], mesSaida, diaSaida, horaSaida, anoSaida,
-                pacientes[i].tempoEspera + pacientes[i].tempoAtendimento,
-                pacientes[i].tempoAtendimento,
-                pacientes[i].tempoEspera);
+                diasSemana[diaSemanaEntrada],
+                meses[mesEntrada - 1], diaEntrada, horaEntrada, anoEntrada);
     }
 
     fclose(saida);
 
-    // Finaliza recursos
     finalizaEscalonador(&escalonador);
     for (int i = 0; i < MAX_FILAS; i++) {
         Finaliza(&filas[i]);
     }
-
     free(pacientes);
     return 0;
 }
