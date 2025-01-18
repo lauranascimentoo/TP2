@@ -153,7 +153,7 @@ int main() {
 
         int diaSemanaEntrada = calculaDiaDaSemana(pacientes[i].ano, pacientes[i].mes, pacientes[i].dia);
 
-        fprintf(saida, "%s %s %s %02d %02d:00 %04d\n",
+        fprintf(saida, "%s %s %s %02d %02d:00:00 %04d\n",
                 pacientes[i].id,
                 diasSemana[diaSemanaEntrada],
                 meses[mesEntrada - 1], diaEntrada, horaEntrada, anoEntrada);
