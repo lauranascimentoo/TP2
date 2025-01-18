@@ -146,17 +146,25 @@ int main() {
 
     for (int i = 0; i < totalPacientes; i++) {
         int anoEntrada, mesEntrada, diaEntrada, horaEntrada;
+        int anoSaida, mesSaida, diaSaida, horaSaida;
         transformaData(
             transformaHoras(pacientes[i].ano, pacientes[i].mes, pacientes[i].dia, pacientes[i].hora),
             &anoEntrada, &mesEntrada, &diaEntrada, &horaEntrada
         );
+        transformaData(pacientes[i].horaSaida, &anoSaida, &mesSaida, &diaSaida, &horaSaida);
 
         int diaSemanaEntrada = calculaDiaDaSemana(pacientes[i].ano, pacientes[i].mes, pacientes[i].dia);
+        int diaSemanaSaida = calculaDiaDaSemana(anoSaida, mesSaida, diaSaida);
 
-        fprintf(saida, "%s %s %s %02d %02d:00:00 %04d\n",
+        fprintf(saida, "%s %s %s %02d %02d:00:00 %04d %s %s %02d %02d:00:00 %04d %.2f %.2f %.2f\n",
                 pacientes[i].id,
                 diasSemana[diaSemanaEntrada],
-                meses[mesEntrada - 1], diaEntrada, horaEntrada, anoEntrada);
+                meses[mesEntrada - 1], diaEntrada, horaEntrada, anoEntrada,
+                diasSemana[diaSemanaSaida],
+                meses[mesSaida - 1], diaSaida, horaSaida, anoSaida,
+                pacientes[i].tempoEspera + pacientes[i].tempoAtendimento,
+                pacientes[i].tempoAtendimento,
+                pacientes[i].tempoEspera);
     }
 
     fclose(saida);
