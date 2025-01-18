@@ -1,0 +1,11 @@
+Evento 1:
+  Tempo: 10.00
+  Tipo: 0
+  Paciente ID: 0009600010
+Evento 2:
+  Tempo: 12.00
+  Tipo: 1
+  Paciente ID: 0009600011
+Evento 1 é válido.
+Evento 2 é válido.
+Evento 1 ocorre antes do Evento 2.

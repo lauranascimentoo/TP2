@@ -1,0 +1,21 @@
+Dados Iniciais do Paciente:
+ID: 0009600010
+Ano de Entrada: 2017
+Mes de Entrada: 3
+Dia de Entrada: 21
+Hora de Entrada: 2
+Prioridade: 1
+Medidas: 3
+Testes: 4
+Exames: 2
+Medicamentos: 8
+Horas desde 01/01/2000: 150938.00
+Data transformada: 21/03/2017 02:00
+Estatísticas do Paciente:
+Tempo Total de Espera: 2.00 horas
+Tempo Total de Atendimento: 2.00 horas
+Tempo Total Ocioso: 2.00 horas
+Tempo Total no Hospital: 6.00 horas
+Estado Inicial: 1
+Próximo Estado: 2
+Data Final após adicionar 6.00 horas: 21/03/2017 08:00

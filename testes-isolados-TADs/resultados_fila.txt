@@ -1,0 +1,10 @@
+Enfileirando pacientes...
+Tamanho da fila: 2
+Desenfileirando paciente...
+Paciente atendido: 0009600010
+Desenfileirando paciente...
+Paciente atendido: 0009600011
+A fila está vazia.
+Estatísticas da Fila:
+Tempo Total de Espera: 4.00
+Tempo Médio de Espera: 2.00

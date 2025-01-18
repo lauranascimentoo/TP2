@@ -1,0 +1,9 @@
+Procedimento inicializado:
+Tempo Médio: 1.50
+Número de Unidades: 3
+Ocupando unidades...
+Estatísticas do Procedimento:
+Tempo Total Ocioso: 10.00
+Tempo Total Ocupado: 5.00
+Unidade livre encontrada: 0
+Recursos do procedimento liberados.

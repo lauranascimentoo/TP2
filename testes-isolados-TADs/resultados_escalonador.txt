@@ -1,0 +1,25 @@
+Escalonador inicializado com capacidade de 5 eventos.
+Eventos inseridos no escalonador.
+Retirando eventos na ordem correta:
+Evento retirado:
+  Tempo: 5.00
+  Tipo: 2
+  Paciente ID: 0009600011
+Evento retirado:
+  Tempo: 7.00
+  Tipo: 1
+  Paciente ID: 0009600010
+Evento retirado:
+  Tempo: 10.00
+  Tipo: 0
+  Paciente ID: 0009600010
+Evento retirado:
+  Tempo: 15.00
+  Tipo: 3
+  Paciente ID: 0009600012
+Evento retirado:
+  Tempo: 20.00
+  Tipo: 4
+  Paciente ID: 0009600011
+O escalonador está vazio após remover todos os eventos.
+Escalonador finalizado e recursos liberados.
