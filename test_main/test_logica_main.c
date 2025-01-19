@@ -13,6 +13,17 @@
 const char *diasSemana[] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
 const char *meses[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
 
+int calculaDiaDaSemana(int ano, int mes, int dia) {
+    if (mes < 3) {
+        mes += 12;
+        ano--;
+    }
+    int k = ano % 100;
+    int j = ano / 100;
+    int h = (dia + 13 * (mes + 1) / 5 + k + k / 4 + j / 4 - 2 * j) % 7;
+    return (h + 7) % 7;
+}
+
 // Enum para facilitar a identificação dos procedimentos
 enum {
     TRIAGEM = 0,
@@ -45,14 +56,14 @@ enum {
     MAX_FILAS_ENUM
 };
 
-// Atualiza o próximo estado do paciente
+// Avança o paciente para o próximo estado
 void avancaEstadoPaciente(Escalonador *escalonador, Paciente *paciente, float tempoAtual, TipoEvento proximoEvento, Fila *filas, int filaDestino) {
     Evento novoEvento = criaEvento(tempoAtual, proximoEvento, paciente);
     insereEvento(escalonador, novoEvento);
     Enfileira(&filas[filaDestino], paciente, tempoAtual);
 }
 
-// Calcula o tempo em um procedimento e atualiza o escalonador
+// Processa o paciente em um procedimento
 void processaProcedimento(Escalonador *escalonador, Paciente *paciente, Procedimento *procedimento, float tempoAtual, TipoEvento proximoEvento, Fila *filas, int filaDestino) {
     int unidade = encontraUnidadeOciosa(procedimento, tempoAtual);
     if (unidade >= 0) {
@@ -107,31 +118,81 @@ int main() {
         insereEvento(&escalonador, eventoInicial);
     }
 
-    while (escalonador.tamanho > 0) {
-        Evento evento;
-        if (!retiraProximoEvento(&escalonador, &evento)) break;
+while (escalonador.tamanho > 0) {
+    Evento evento;
+    if (!retiraProximoEvento(&escalonador, &evento)) break;
 
-        tempoAtual = evento.tempo;
+    tempoAtual = evento.tempo;
 
-        switch (evento.tipo) {
-            case EVENTO_CHEGADA:
-                avancaEstadoPaciente(&escalonador, evento.paciente, tempoAtual, EVENTO_TRIAGEM, filas, FILA_TRIAGEM);
-                break;
-            case EVENTO_TRIAGEM:
-                processaProcedimento(&escalonador, evento.paciente, &procedimentos[TRIAGEM], tempoAtual, EVENTO_ATENDIMENTO, filas, FILA_ATEND_PRIORIDADE_2 - evento.paciente->prioridade);
-                break;
-            case EVENTO_ATENDIMENTO:
-                processaProcedimento(&escalonador, evento.paciente, &procedimentos[ATEND], tempoAtual, EVENTO_ALTA, filas, 0);
-                break;
-            case EVENTO_ALTA:
-                evento.paciente->horaSaida = tempoAtual;
-                evento.paciente->tempoTotal = tempoAtual - evento.paciente->horaEntrada;
-                break;
-            default:
-                fprintf(stderr, "Evento desconhecido\n");
-                break;
-        }
+    switch (evento.tipo) {
+        case EVENTO_CHEGADA:
+            avancaEstadoPaciente(&escalonador, evento.paciente, tempoAtual, EVENTO_TRIAGEM, filas, FILA_TRIAGEM);
+            break;
+
+        case EVENTO_TRIAGEM:
+            processaProcedimento(&escalonador, evento.paciente, &procedimentos[TRIAGEM], tempoAtual, EVENTO_ATENDIMENTO,
+                                 filas, FILA_ATEND_PRIORIDADE_2 - evento.paciente->prioridade);
+            break;
+
+        case EVENTO_ATENDIMENTO:
+            processaProcedimento(&escalonador, evento.paciente, &procedimentos[ATEND], tempoAtual, 
+                                 EVENTO_MEDIDAS, filas, FILA_MH_PRIORIDADE_2 - evento.paciente->prioridade);
+            break;
+
+        case EVENTO_MEDIDAS:
+            if (evento.paciente->medidas > 0) {
+                evento.paciente->medidas--;
+                processaProcedimento(&escalonador, evento.paciente, &procedimentos[MH], tempoAtual, 
+                                     EVENTO_MEDIDAS, filas, FILA_MH_PRIORIDADE_2 - evento.paciente->prioridade);
+            } else {
+                avancaEstadoPaciente(&escalonador, evento.paciente, tempoAtual, EVENTO_TESTES, 
+                                     filas, FILA_TL_PRIORIDADE_2 - evento.paciente->prioridade);
+            }
+            break;
+
+        case EVENTO_TESTES:
+            if (evento.paciente->testes > 0) {
+                evento.paciente->testes--;
+                processaProcedimento(&escalonador, evento.paciente, &procedimentos[TL], tempoAtual, 
+                                     EVENTO_TESTES, filas, FILA_TL_PRIORIDADE_2 - evento.paciente->prioridade);
+            } else {
+                avancaEstadoPaciente(&escalonador, evento.paciente, tempoAtual, EVENTO_EXAME, 
+                                     filas, FILA_EI_PRIORIDADE_2 - evento.paciente->prioridade);
+            }
+            break;
+
+        case EVENTO_EXAME:
+            if (evento.paciente->exames > 0) {
+                evento.paciente->exames--;
+                processaProcedimento(&escalonador, evento.paciente, &procedimentos[EI], tempoAtual, 
+                                     EVENTO_EXAME, filas, FILA_EI_PRIORIDADE_2 - evento.paciente->prioridade);
+            } else {
+                avancaEstadoPaciente(&escalonador, evento.paciente, tempoAtual, EVENTO_MEDICAMENTO, 
+                                     filas, FILA_IM_PRIORIDADE_2 - evento.paciente->prioridade);
+            }
+            break;
+
+        case EVENTO_MEDICAMENTO:
+            if (evento.paciente->medicamentos > 0) {
+                evento.paciente->medicamentos--;
+                processaProcedimento(&escalonador, evento.paciente, &procedimentos[IM], tempoAtual, 
+                                     EVENTO_MEDICAMENTO, filas, FILA_IM_PRIORIDADE_2 - evento.paciente->prioridade);
+            } else {
+                avancaEstadoPaciente(&escalonador, evento.paciente, tempoAtual, EVENTO_ALTA, filas, 0);
+            }
+            break;
+
+        case EVENTO_ALTA:
+            evento.paciente->horaSaida = tempoAtual;
+            evento.paciente->tempoTotal = tempoAtual - evento.paciente->horaEntrada;
+            break;
+
+        default:
+            fprintf(stderr, "Erro: Evento desconhecido\n");
+            break;
     }
+}
+
 
     FILE *saida = fopen("saida.txt", "w");
     if (!saida) {
@@ -141,10 +202,35 @@ int main() {
     }
 
     for (int i = 0; i < totalPacientes; i++) {
-        int anoSaida, mesSaida, diaSaida, horaSaida;
+        int anoEntrada, mesEntrada, diaEntrada, horaEntrada, minutosEntrada, segundosEntrada;
+        int anoSaida, mesSaida, diaSaida, horaSaida, minutosSaida, segundosSaida;
+
+        // Transforma o tempo de entrada em data e hora
+        transformaData(pacientes[i].horaEntrada, &anoEntrada, &mesEntrada, &diaEntrada, &horaEntrada);
+        float minutosEntradaFracao = (pacientes[i].horaEntrada - (int)pacientes[i].horaEntrada) * 60;
+        minutosEntrada = (int)minutosEntradaFracao;
+        segundosEntrada = (int)((minutosEntradaFracao - minutosEntrada) * 60);
+
+        // Transforma o tempo de saída em data e hora
         transformaData(pacientes[i].horaSaida, &anoSaida, &mesSaida, &diaSaida, &horaSaida);
-        fprintf(saida, "%s %.2f %.2f %.2f\n",
-                pacientes[i].id, pacientes[i].tempoTotal, pacientes[i].tempoAtendimento, pacientes[i].tempoEspera);
+        float minutosSaidaFracao = (pacientes[i].horaSaida - (int)pacientes[i].horaSaida) * 60;
+        minutosSaida = (int)minutosSaidaFracao;
+        segundosSaida = (int)((minutosSaidaFracao - minutosSaida) * 60);
+
+        // Calcula o dia da semana
+        int diaSemanaEntrada = calculaDiaDaSemana(anoEntrada, mesEntrada, diaEntrada);
+        int diaSemanaSaida = calculaDiaDaSemana(anoSaida, mesSaida, diaSaida);
+
+        // Escreve no arquivo de saída
+        fprintf(saida, "%s %s %s %02d %02d:%02d:%02d %04d %s %s %02d %02d:%02d:%02d %04d %.2f %.2f %.2f\n",
+                pacientes[i].id,
+                diasSemana[diaSemanaEntrada],
+                meses[mesEntrada - 1], diaEntrada, horaEntrada, minutosEntrada, segundosEntrada, anoEntrada,
+                diasSemana[diaSemanaSaida],
+                meses[mesSaida - 1], diaSaida, horaSaida, minutosSaida, segundosSaida, anoSaida,
+                pacientes[i].tempoTotal,
+                pacientes[i].tempoAtendimento,
+                pacientes[i].tempoEspera);
     }
 
     fclose(saida);

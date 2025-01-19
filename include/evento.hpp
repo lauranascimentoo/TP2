@@ -8,6 +8,8 @@ typedef enum {
     EVENTO_CHEGADA,        // Paciente chega ao hospital
     EVENTO_TRIAGEM,        // Paciente entra na triagem
     EVENTO_ATENDIMENTO,    // Início de atendimento
+    EVENTO_MEDIDAS,        // Início de medidas
+    EVENTO_TESTES,         // Início de testes
     EVENTO_EXAME,          // Início de exame
     EVENTO_MEDICAMENTO,    // Início de aplicação de medicamento
     EVENTO_ALTA,           // Paciente recebe alta
