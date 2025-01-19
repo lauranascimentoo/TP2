@@ -116,13 +116,14 @@ void inicProcedimentos(Procedimento *procedimentos, const char **dadosProcedimen
 }
 
 // Processa o paciente em um procedimento
-void processaProcedimento(Escalonador *escalonador, Paciente *paciente, Procedimento *procedimento, float tempoAtual, TipoEvento proximoEvento, Fila *filas, int filaDestino) {
+//void processaProcedimento(Escalonador *escalonador, Paciente *paciente, Procedimento *procedimento, float tempoAtual, TipoEvento proximoEvento, Fila *filas, int filaDestino) {
+void processaProcedimento(Escalonador *escalonador, Paciente *paciente, Procedimento *procedimento, float tempoAtual) {
     int unidade = encontraUnidadeOciosa(procedimento, tempoAtual);
     float tempoProcedimento = procedimento->tempoMedio; // Tempo médio para este procedimento
     
     if (unidade >= 0) {
         ocupaUnidade(procedimento, unidade, tempoAtual, procedimento->tempoMedio);
-        calculaTempoAtendimento(paciente, tempoAtual, tempoAtual + procedimento->tempoMedio);
+        // calculaTempoAtendimento(paciente, tempoAtual, tempoAtual + procedimento->tempoMedio);
         printf("Paciente %s completou parte do procedimento ID %d (Tempo Médio: %.2f horas).\n",
                paciente->id, procedimento->id, tempoProcedimento);
     } else {
@@ -204,7 +205,7 @@ int main() {
 printf("=== Início da Simulação ===\n\n");
 while (!condicaoTermino) {
     if (escalonador.tamanho == 0) {
-        condicaoTermino = 1; // Termina a execução se o escalonador estiver vazio
+        condicaoTermino = 1;
         break;
     }
 
@@ -221,60 +222,83 @@ while (!condicaoTermino) {
             avancaEstadoPaciente(&escalonador, evento.paciente, tempoAtual, EVENTO_TRIAGEM, filas, FILA_TRIAGEM);
             break;
 
-        case EVENTO_TRIAGEM:
-            processaProcedimento(&escalonador, evento.paciente, &procedimentos[TRIAGEM], tempoAtual, EVENTO_ATENDIMENTO, filas, FILA_ATEND_PRIORIDADE_2 - evento.paciente->prioridade);
-            avancaEstadoPaciente(&escalonador, evento.paciente, tempoAtual + procedimentos[TRIAGEM].tempoMedio, EVENTO_ATENDIMENTO, filas, FILA_ATEND_PRIORIDADE_2 - evento.paciente->prioridade);
+        case EVENTO_TRIAGEM: {
+            float tempoProcedimento = procedimentos[TRIAGEM].tempoMedio;
+            processaProcedimento(&escalonador, evento.paciente, &procedimentos[TRIAGEM], tempoAtual);
+            evento.paciente->tempoAtendimento += tempoProcedimento;
+            evento.paciente->tempoTotal += tempoProcedimento;
+            avancaEstadoPaciente(&escalonador, evento.paciente, tempoAtual + tempoProcedimento, EVENTO_ATENDIMENTO, filas, FILA_ATEND_PRIORIDADE_2 - evento.paciente->prioridade);
             break;
+        }
 
-        case EVENTO_ATENDIMENTO:
-            processaProcedimento(&escalonador, evento.paciente, &procedimentos[ATEND], tempoAtual, EVENTO_MEDIDAS, filas, FILA_MH_PRIORIDADE_2 - evento.paciente->prioridade);
-            avancaEstadoPaciente(&escalonador, evento.paciente, tempoAtual + procedimentos[ATEND].tempoMedio, EVENTO_MEDIDAS, filas, FILA_MH_PRIORIDADE_2 - evento.paciente->prioridade);
+        case EVENTO_ATENDIMENTO: {
+            float tempoProcedimento = procedimentos[ATEND].tempoMedio;
+            processaProcedimento(&escalonador, evento.paciente, &procedimentos[ATEND], tempoAtual);
+            evento.paciente->tempoAtendimento += tempoProcedimento;
+            evento.paciente->tempoTotal += tempoProcedimento;
+            avancaEstadoPaciente(&escalonador, evento.paciente, tempoAtual + tempoProcedimento, EVENTO_MEDIDAS, filas, FILA_MH_PRIORIDADE_2 - evento.paciente->prioridade);
             break;
+        }
 
-        case EVENTO_MEDIDAS:
+        case EVENTO_MEDIDAS: {
             if (evento.paciente->medidas > 0) {
                 evento.paciente->medidas--;
-                processaProcedimento(&escalonador, evento.paciente, &procedimentos[MH], tempoAtual, EVENTO_MEDIDAS, filas, FILA_MH_PRIORIDADE_2 - evento.paciente->prioridade);
-                avancaEstadoPaciente(&escalonador, evento.paciente, tempoAtual + procedimentos[MH].tempoMedio, EVENTO_MEDIDAS, filas, FILA_MH_PRIORIDADE_2 - evento.paciente->prioridade);
+                float tempoProcedimento = procedimentos[MH].tempoMedio;
+                processaProcedimento(&escalonador, evento.paciente, &procedimentos[MH], tempoAtual);
+                evento.paciente->tempoAtendimento += tempoProcedimento;
+                evento.paciente->tempoTotal += tempoProcedimento;
+                avancaEstadoPaciente(&escalonador, evento.paciente, tempoAtual + tempoProcedimento, EVENTO_MEDIDAS, filas, FILA_MH_PRIORIDADE_2 - evento.paciente->prioridade);
             } else {
                 avancaEstadoPaciente(&escalonador, evento.paciente, tempoAtual, EVENTO_TESTES, filas, FILA_TL_PRIORIDADE_2 - evento.paciente->prioridade);
             }
             break;
+        }
 
-        case EVENTO_TESTES:
+        case EVENTO_TESTES: {
             if (evento.paciente->testes > 0) {
                 evento.paciente->testes--;
-                processaProcedimento(&escalonador, evento.paciente, &procedimentos[TL], tempoAtual, EVENTO_TESTES, filas, FILA_TL_PRIORIDADE_2 - evento.paciente->prioridade);
-                avancaEstadoPaciente(&escalonador, evento.paciente, tempoAtual + procedimentos[TL].tempoMedio, EVENTO_TESTES, filas, FILA_TL_PRIORIDADE_2 - evento.paciente->prioridade);
+                float tempoProcedimento = procedimentos[TL].tempoMedio;
+                processaProcedimento(&escalonador, evento.paciente, &procedimentos[TL], tempoAtual);
+                evento.paciente->tempoAtendimento += tempoProcedimento;
+                evento.paciente->tempoTotal += tempoProcedimento;
+                avancaEstadoPaciente(&escalonador, evento.paciente, tempoAtual + tempoProcedimento, EVENTO_TESTES, filas, FILA_TL_PRIORIDADE_2 - evento.paciente->prioridade);
             } else {
                 avancaEstadoPaciente(&escalonador, evento.paciente, tempoAtual, EVENTO_EXAME, filas, FILA_EI_PRIORIDADE_2 - evento.paciente->prioridade);
             }
             break;
+        }
 
-        case EVENTO_EXAME:
+        case EVENTO_EXAME: {
             if (evento.paciente->exames > 0) {
                 evento.paciente->exames--;
-                processaProcedimento(&escalonador, evento.paciente, &procedimentos[EI], tempoAtual, EVENTO_EXAME, filas, FILA_EI_PRIORIDADE_2 - evento.paciente->prioridade);
-                avancaEstadoPaciente(&escalonador, evento.paciente, tempoAtual + procedimentos[EI].tempoMedio, EVENTO_EXAME, filas, FILA_EI_PRIORIDADE_2 - evento.paciente->prioridade);
+                float tempoProcedimento = procedimentos[EI].tempoMedio;
+                processaProcedimento(&escalonador, evento.paciente, &procedimentos[EI], tempoAtual);
+                evento.paciente->tempoAtendimento += tempoProcedimento;
+                evento.paciente->tempoTotal += tempoProcedimento;
+                avancaEstadoPaciente(&escalonador, evento.paciente, tempoAtual + tempoProcedimento, EVENTO_EXAME, filas, FILA_EI_PRIORIDADE_2 - evento.paciente->prioridade);
             } else {
                 avancaEstadoPaciente(&escalonador, evento.paciente, tempoAtual, EVENTO_MEDICAMENTO, filas, FILA_IM_PRIORIDADE_2 - evento.paciente->prioridade);
             }
             break;
+        }
 
-        case EVENTO_MEDICAMENTO:
+        case EVENTO_MEDICAMENTO: {
             if (evento.paciente->medicamentos > 0) {
                 evento.paciente->medicamentos--;
-                processaProcedimento(&escalonador, evento.paciente, &procedimentos[IM], tempoAtual, EVENTO_MEDICAMENTO, filas, FILA_IM_PRIORIDADE_2 - evento.paciente->prioridade);
-                avancaEstadoPaciente(&escalonador, evento.paciente, tempoAtual + procedimentos[IM].tempoMedio, EVENTO_MEDICAMENTO, filas, FILA_IM_PRIORIDADE_2 - evento.paciente->prioridade);
+                float tempoProcedimento = procedimentos[IM].tempoMedio;
+                processaProcedimento(&escalonador, evento.paciente, &procedimentos[IM], tempoAtual);
+                evento.paciente->tempoAtendimento += tempoProcedimento;
+                evento.paciente->tempoTotal += tempoProcedimento;
+                avancaEstadoPaciente(&escalonador, evento.paciente, tempoAtual + tempoProcedimento, EVENTO_MEDICAMENTO, filas, FILA_IM_PRIORIDADE_2 - evento.paciente->prioridade);
             } else {
                 avancaEstadoPaciente(&escalonador, evento.paciente, tempoAtual, EVENTO_ALTA, filas, 0);
             }
             break;
+        }
 
         case EVENTO_ALTA:
             evento.paciente->horaSaida = tempoAtual;
-            evento.paciente->tempoTotal = tempoAtual - evento.paciente->horaEntrada;
-            evento.paciente->estado = 14; // Alta hospitalar
+            evento.paciente->estado = 14;
             printf("Paciente %s recebeu alta no tempo %.2f\n", evento.paciente->id, tempoAtual);
             break;
 
