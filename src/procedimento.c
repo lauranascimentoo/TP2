@@ -3,31 +3,14 @@
 #include <string.h>
 #include "procedimento.hpp"
 
-// Inicializa um procedimento a partir de uma linha do arquivo CSV
-void inicializaProcedimentoComLinha(Procedimento *proc, const char *linha) {
-    if (!proc || !linha) {
-        fprintf(stderr, "Erro: Parâmetros inválidos em inicializaProcedimentoComLinha.\n");
-        exit(EXIT_FAILURE);
-    }
-
-    float tempoMedio;
-    int unidades;
-
-    if (sscanf(linha, "%f %d", &tempoMedio, &unidades) != 2) {
-        fprintf(stderr, "Erro: Linha inválida em inicializaProcedimentoComLinha.\n");
-        exit(EXIT_FAILURE);
-    }
-
-    inicializaProcedimento(proc, tempoMedio, unidades);
-}
-
-// Inicializa um procedimento com o tempo médio e o número de unidades
-void inicializaProcedimento(Procedimento *proc, float tempoMedio, int unidades) {
+// Inicializa um procedimento com o tempo médio, número de unidades e ID
+void inicializaProcedimento(Procedimento *proc, int id, float tempoMedio, int unidades) {
     if (!proc || tempoMedio <= 0 || unidades <= 0) {
         fprintf(stderr, "Erro: Parâmetros inválidos em inicializaProcedimento.\n");
         exit(EXIT_FAILURE);
     }
 
+    proc->id = id; // Define o ID do procedimento
     proc->tempoMedio = tempoMedio;
     proc->unidades = unidades;
     proc->statusUnidades = (int *)malloc(unidades * sizeof(int));
@@ -46,20 +29,50 @@ void inicializaProcedimento(Procedimento *proc, float tempoMedio, int unidades) 
     }
 }
 
-// Retorna o índice de uma unidade ociosa ou -1 se todas estiverem ocupadas
-int encontraUnidadeOciosa(Procedimento *proc, float tempoAtual) {
-    if (!proc || tempoAtual < 0) {
-        fprintf(stderr, "Erro: Parâmetros inválidos em encontraUnidadeOciosa.\n");
-        return -1;
+// Inicializa um procedimento a partir de uma linha do arquivo CSV
+void inicializaProcedimentoComLinha(Procedimento *proc, const char *linha, int id) {
+    if (!proc || !linha) {
+        fprintf(stderr, "Erro: Parâmetros inválidos em inicializaProcedimentoComLinha.\n");
+        exit(EXIT_FAILURE);
     }
 
+    float tempoMedio;
+    int unidades;
+
+    if (sscanf(linha, "%f %d", &tempoMedio, &unidades) != 2) {
+        fprintf(stderr, "Erro: Linha inválida em inicializaProcedimentoComLinha.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    inicializaProcedimento(proc, id, tempoMedio, unidades);
+}
+
+// Retorna o índice de uma unidade ociosa ou -1 se todas estiverem ocupadas
+// int encontraUnidadeOciosa(Procedimento *proc, float tempoAtual) {
+//     if (!proc || tempoAtual < 0) {
+//         fprintf(stderr, "Erro: Parâmetros inválidos em encontraUnidadeOciosa.\n");
+//         return -1;
+//     }
+
+//     for (int i = 0; i < proc->unidades; i++) {
+//         if (proc->statusUnidades[i] == 0 || proc->tempoOcupadoAte[i] <= tempoAtual) {
+//             return i; // Retorna a primeira unidade disponível
+//         }
+//     }
+//     return -1; // Nenhuma unidade ociosa
+// }
+int encontraUnidadeOciosa(Procedimento *proc, float tempoAtual) {
+    printf("Tempo Atual: %.2f\n", tempoAtual);
     for (int i = 0; i < proc->unidades; i++) {
+        printf("Unidade %d: Status = %d, Tempo Ocupado Até = %.2f\n", 
+               i, proc->statusUnidades[i], proc->tempoOcupadoAte[i]);
         if (proc->statusUnidades[i] == 0 || proc->tempoOcupadoAte[i] <= tempoAtual) {
-            return i; // Retorna a primeira unidade disponível
+            return i;
         }
     }
-    return -1; // Nenhuma unidade ociosa
+    return -1;
 }
+
 
 // Atualiza o status de uma unidade para ocupada até um tempo específico
 void ocupaUnidade(Procedimento *proc, int unidade, float tempoAtual, float tempoOcupacao) {

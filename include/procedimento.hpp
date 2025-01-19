@@ -3,18 +3,19 @@
 
 // Representa um procedimento com suas unidades, tempo médio e estados
 typedef struct {
-    float tempoMedio;       // Tempo médio de execução do procedimento
-    int unidades;           // Número de unidades disponíveis para o procedimento
-    int *statusUnidades;    // Array indicando o status de cada unidade (0: ocioso, 1: ocupado)
-    float *tempoOcioso;     // Tempo total ocioso de cada unidade
-    float *tempoOcupadoAte; // Tempo até o qual cada unidade está ocupada
+    int id;                // ID do procedimento
+    float tempoMedio;      // Tempo médio de execução do procedimento
+    int unidades;          // Número de unidades disponíveis para o procedimento
+    int *statusUnidades;   // Array indicando o status de cada unidade (0: ocioso, 1: ocupado)
+    float *tempoOcioso;    // Tempo total ocioso de cada unidade
+    float *tempoOcupadoAte;// Tempo até o qual cada unidade está ocupada
 } Procedimento;
 
-// Inicializa um procedimento com tempo médio e número de unidades
-void inicializaProcedimento(Procedimento *proc, float tempoMedio, int unidades);
+// Inicializa um procedimento com tempo médio, número de unidades e ID
+void inicializaProcedimento(Procedimento *proc, int id, float tempoMedio, int unidades);
 
 // Inicializa um procedimento a partir de uma linha de configuração
-void inicializaProcedimentoComLinha(Procedimento *proc, const char *linha);
+void inicializaProcedimentoComLinha(Procedimento *proc, const char *linha, int id);
 
 // Encontra uma unidade ociosa com base no tempo atual (ou -1 se todas estiverem ocupadas)
 int encontraUnidadeOciosa(Procedimento *proc, float tempoAtual);
@@ -32,5 +33,3 @@ void calculaEstatisticasProcedimento(Procedimento *proc, float *tempoTotalOcioso
 void finalizaProcedimento(Procedimento *proc);
 
 #endif // PROCEDIMENTO_HPP
-
-

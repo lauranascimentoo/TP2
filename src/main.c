@@ -13,7 +13,6 @@ const char *diasSemana[] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
 const char *meses[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
 
 int calculaDiaDaSemana(int ano, int mes, int dia) {
-    // Fórmula de Zeller para calcular o dia da semana
     if (mes < 3) {
         mes += 12;
         ano--;
@@ -21,17 +20,17 @@ int calculaDiaDaSemana(int ano, int mes, int dia) {
     int k = ano % 100;
     int j = ano / 100;
     int h = (dia + 13 * (mes + 1) / 5 + k + k / 4 + j / 4 - 2 * j) % 7;
-    return ((h + 5) % 7) + 1; // Ajusta para 0 = Domingo, 1 = Segunda...
+    return (h + 7) % 7;
 }
 
 int main() {
-    // Variáveis principais
     Escalonador escalonador;
     Fila filas[MAX_FILAS];
     Paciente *pacientes = NULL;
     int totalPacientes = 0;
     int capacidadePacientes = 0;
     float tempoAtual = 0.0f;
+    int condicaoTermino = 0;
 
     // Inicializa o escalonador
     inicializaEscalonador(&escalonador, 1000);
@@ -63,7 +62,6 @@ int main() {
         }
     }
 
-    // Lê o número de pacientes
     if (fgets(linha, sizeof(linha), entrada)) {
         capacidadePacientes = atoi(linha);
         if (capacidadePacientes <= 0) {
@@ -79,7 +77,7 @@ int main() {
         }
     }
 
-    // Lê pacientes do arquivo
+    // Agendar evento inicial
     while (fgets(linha, sizeof(linha), entrada)) {
         if (totalPacientes >= capacidadePacientes) {
             fprintf(stderr, "Erro: Excedido o número de pacientes esperado\n");
@@ -99,41 +97,66 @@ int main() {
 
     fclose(entrada);
 
-    // Loop principal da simulação
-    while (escalonador.tamanho > 0) {
+    // Enquanto a condição de término for falsa
+    while (!condicaoTermino) {
+        if (escalonador.tamanho == 0) {
+            condicaoTermino = 1; // Termina a execução se o escalonador estiver vazio
+            break;
+        }
+
         Evento evento;
         if (!retiraProximoEvento(&escalonador, &evento)) {
             fprintf(stderr, "Erro ao retirar evento do escalonador\n");
             break;
         }
+
         tempoAtual = evento.tempo;
+
         switch (evento.tipo) {
             case EVENTO_CHEGADA:
                 Enfileira(&filas[0], evento.paciente, tempoAtual);
+                evento.paciente->horaEntrada = tempoAtual;
+                evento.paciente->estado = 2;
                 break;
 
             case EVENTO_TRIAGEM:
-                Desenfileira(&filas[0], tempoAtual);
-                evento.paciente->prioridade = rand() % 3;
-                Evento proxEvento = criaEvento(tempoAtual + temposProcedimentos[0], EVENTO_ATENDIMENTO, evento.paciente);
-                insereEvento(&escalonador, proxEvento);
+                if (!FilaVazia(&filas[0])) {
+                    Paciente *paciente = Desenfileira(&filas[0], tempoAtual);
+                    calculaTempoFila(paciente, paciente->horaEntrada, tempoAtual);
+                    paciente->estado = 3;
+                    paciente->horaEntrada = tempoAtual;
+                    Evento proxEvento = criaEvento(
+                        tempoAtual + temposProcedimentos[0], EVENTO_ATENDIMENTO, paciente
+                    );
+                    insereEvento(&escalonador, proxEvento);
+                }
                 break;
 
             case EVENTO_ATENDIMENTO:
-                calculaTempoFila(evento.paciente, evento.paciente->horaEntrada, tempoAtual);
-                calculaTempoAtendimento(evento.paciente, tempoAtual, tempoAtual + temposProcedimentos[1]);
-                Evento altaEvento = criaEvento(tempoAtual + temposProcedimentos[1], EVENTO_ALTA, evento.paciente);
-                insereEvento(&escalonador, altaEvento);
+                if (!FilaVazia(&filas[1])) {
+                    Paciente *paciente = Desenfileira(&filas[1], tempoAtual);
+                    calculaTempoFila(paciente, paciente->horaEntrada, tempoAtual);
+                    calculaTempoAtendimento(paciente, tempoAtual, tempoAtual + temposProcedimentos[1]);
+                    paciente->estado = 5;
+                    paciente->horaEntrada = tempoAtual;
+                    Evento altaEvento = criaEvento(
+                        tempoAtual + temposProcedimentos[1], EVENTO_ALTA, paciente
+                    );
+                    insereEvento(&escalonador, altaEvento);
+                }
                 break;
 
             case EVENTO_ALTA:
                 evento.paciente->horaSaida = tempoAtual;
+                evento.paciente->estado = 14;
                 break;
 
             default:
                 fprintf(stderr, "Erro: Tipo de evento desconhecido\n");
                 break;
         }
+
+        // Atualizar estatísticas ou processar lógica adicional aqui, se necessário
     }
 
     // Gera saída
@@ -162,7 +185,7 @@ int main() {
                 meses[mesEntrada - 1], diaEntrada, horaEntrada, anoEntrada,
                 diasSemana[diaSemanaSaida],
                 meses[mesSaida - 1], diaSaida, horaSaida, anoSaida,
-                pacientes[i].tempoEspera + pacientes[i].tempoAtendimento,
+                pacientes[i].horaSaida - transformaHoras(pacientes[i].ano, pacientes[i].mes, pacientes[i].dia, pacientes[i].hora),
                 pacientes[i].tempoAtendimento,
                 pacientes[i].tempoEspera);
     }
