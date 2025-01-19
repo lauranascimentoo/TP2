@@ -62,10 +62,10 @@ void inicializaProcedimentoComLinha(Procedimento *proc, const char *linha, int i
 //     return -1; // Nenhuma unidade ociosa
 // }
 int encontraUnidadeOciosa(Procedimento *proc, float tempoAtual) {
-    printf("Tempo Atual: %.2f\n", tempoAtual);
+    // printf("Tempo Atual: %.2f\n", tempoAtual);
     for (int i = 0; i < proc->unidades; i++) {
-        printf("Unidade %d: Status = %d, Tempo Ocupado Até = %.2f\n", 
-               i, proc->statusUnidades[i], proc->tempoOcupadoAte[i]);
+        // printf("Unidade %d: Status = %d, Tempo Ocupado Até = %.2f\n", 
+        //       i, proc->statusUnidades[i], proc->tempoOcupadoAte[i]);
         if (proc->statusUnidades[i] == 0 || proc->tempoOcupadoAte[i] <= tempoAtual) {
             return i;
         }

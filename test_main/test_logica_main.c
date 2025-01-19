@@ -24,103 +24,195 @@ int calculaDiaDaSemana(int ano, int mes, int dia) {
     return (h + 7) % 7;
 }
 
-// Enum para facilitar a identificação dos procedimentos
-enum {
-    TRIAGEM = 0,
-    ATEND,
-    MH,
-    TL,
-    EI,
-    IM,
-    MAX_PROCEDIMENTOS_ENUM
-};
-
-// Enum para as filas
-enum {
-    FILA_TRIAGEM = 0,
-    FILA_ATEND_PRIORIDADE_2,
-    FILA_ATEND_PRIORIDADE_1,
-    FILA_ATEND_PRIORIDADE_0,
-    FILA_MH_PRIORIDADE_2,
-    FILA_MH_PRIORIDADE_1,
-    FILA_MH_PRIORIDADE_0,
-    FILA_TL_PRIORIDADE_2,
-    FILA_TL_PRIORIDADE_1,
-    FILA_TL_PRIORIDADE_0,
-    FILA_EI_PRIORIDADE_2,
-    FILA_EI_PRIORIDADE_1,
-    FILA_EI_PRIORIDADE_0,
-    FILA_IM_PRIORIDADE_2,
-    FILA_IM_PRIORIDADE_1,
-    FILA_IM_PRIORIDADE_0,
-    MAX_FILAS_ENUM
-};
+// PACIENTE
+void imprimeEstadoPaciente(const Paciente *paciente) {
+    printf("Paciente ID: %s\n", paciente->id);
+    printf("  Teve Alta: %s\n", paciente->teveAlta ? "Sim" : "Não");
+    printf("  Data/Hora Entrada: %04d-%02d-%02d %02d:00\n", paciente->ano, paciente->mes, paciente->dia, paciente->hora);
+    printf("  Data/Hora Saída: %04d-%02d-%02d %02d:00\n", paciente->ano_s, paciente->mes_s, paciente->dia_s, paciente->hora_s);
+    printf("  Prioridade: %d\n", paciente->prioridade);
+    printf("  Nº Medidas Hospitalares: %d\n", paciente->medidas);
+    printf("  Nº Testes de Laboratório: %d\n", paciente->testes);
+    printf("  Nº Exames de Imagem: %d\n", paciente->exames);
+    printf("  Nº Medicamentos/Instrumentos: %d\n", paciente->medicamentos);
+    printf("  Estado Atual: %d\n", paciente->estado);
+    printf("  Tempo Espera: %.2f horas\n", paciente->tempoEspera);
+    printf("  Tempo Atendimento: %.2f horas\n", paciente->tempoAtendimento);
+    printf("  Tempo Ocioso: %.2f horas\n", paciente->tempoOcioso);
+    printf("  Hora Entrada: %.2f\n", paciente->horaEntrada);
+    printf("  Hora Saída: %.2f\n", paciente->horaSaida);
+    printf("  Tempo Total no Hospital: %.2f horas\n", paciente->tempoTotal);
+}
 
 // Avança o paciente para o próximo estado
 void avancaEstadoPaciente(Escalonador *escalonador, Paciente *paciente, float tempoAtual, TipoEvento proximoEvento, Fila *filas, int filaDestino) {
     Evento novoEvento = criaEvento(tempoAtual, proximoEvento, paciente);
     insereEvento(escalonador, novoEvento);
     Enfileira(&filas[filaDestino], paciente, tempoAtual);
+    paciente->estado++;
+}
+
+
+// FILAS
+// Enum para facilitar o acesso às filas
+enum {
+    FILA_TRIAGEM = 0,              // Fila 0: Triagem
+    FILA_ATEND_PRIORIDADE_2,       // Fila 1: Atendimento Prioridade 2 (vermelho)
+    FILA_ATEND_PRIORIDADE_1,       // Fila 2: Atendimento Prioridade 1 (amarelo)
+    FILA_ATEND_PRIORIDADE_0,       // Fila 3: Atendimento Prioridade 0 (verde)
+    FILA_MH_PRIORIDADE_2,          // Fila 4: Medidas Hospitalares Prioridade 2
+    FILA_MH_PRIORIDADE_1,          // Fila 5: Medidas Hospitalares Prioridade 1
+    FILA_MH_PRIORIDADE_0,          // Fila 6: Medidas Hospitalares Prioridade 0
+    FILA_TL_PRIORIDADE_2,          // Fila 7: Testes de Laboratório Prioridade 2
+    FILA_TL_PRIORIDADE_1,          // Fila 8: Testes de Laboratório Prioridade 1
+    FILA_TL_PRIORIDADE_0,          // Fila 9: Testes de Laboratório Prioridade 0
+    FILA_EI_PRIORIDADE_2,          // Fila 10: Exames de Imagem Prioridade 2
+    FILA_EI_PRIORIDADE_1,          // Fila 11: Exames de Imagem Prioridade 1
+    FILA_EI_PRIORIDADE_0,          // Fila 12: Exames de Imagem Prioridade 0
+    FILA_IM_PRIORIDADE_2,          // Fila 13: Medicamentos/Instrumentos Prioridade 2
+    FILA_IM_PRIORIDADE_1,          // Fila 14: Medicamentos/Instrumentos Prioridade 1
+    FILA_IM_PRIORIDADE_0,          // Fila 15: Medicamentos/Instrumentos Prioridade 0
+    MAX_FILAS_ENUM                 // Total de filas
+};
+
+void inicializaFilas(Fila *filas) {
+    for (int i = 0; i < MAX_FILAS_ENUM; i++) {
+        Inicializa(&filas[i]);
+        printf("Fila %d inicializada.\n", i);
+    }
+}
+
+// PROCEDIMENTO
+// Enum para facilitar o acesso àos procedimentos
+enum {
+    TRIAGEM = 0,              // Triagem
+    ATEND,                    // Atendimento
+    MH,                       // Medidas Hospitalares
+    TL,                       // Testes de Laboratório
+    EI,                       // Exames de Imagem
+    IM,                       // Medicamentos/Instrumentos
+    MAX_PROCEDIMENTOS_ENUM    // Total de procedimentos
+};
+
+void inicProcedimentos(Procedimento *procedimentos, const char **dadosProcedimento) {
+    for (int i = 0; i < MAX_PROCEDIMENTOS_ENUM; i++) {
+        float tempoMedio;
+        int unidades;
+
+        // Lê o tempo médio e o número de unidades do procedimento
+        if (sscanf(dadosProcedimento[i], "%f %d", &tempoMedio, &unidades) != 2) {
+            fprintf(stderr, "Erro ao processar dados do procedimento %d.\n", i);
+            exit(EXIT_FAILURE);
+        }
+
+        // Inicializa o procedimento
+        inicializaProcedimento(&procedimentos[i], i, tempoMedio, unidades);
+
+        // Exibe informações do procedimento inicializado
+        printf("Procedimento %d inicializado:\n", i);
+        printf("  Tempo Médio: %.2f\n", tempoMedio);
+        printf("  Unidades: %d\n", unidades);
+    }
 }
 
 // Processa o paciente em um procedimento
 void processaProcedimento(Escalonador *escalonador, Paciente *paciente, Procedimento *procedimento, float tempoAtual, TipoEvento proximoEvento, Fila *filas, int filaDestino) {
     int unidade = encontraUnidadeOciosa(procedimento, tempoAtual);
+    float tempoProcedimento = procedimento->tempoMedio; // Tempo médio para este procedimento
+    
     if (unidade >= 0) {
         ocupaUnidade(procedimento, unidade, tempoAtual, procedimento->tempoMedio);
         calculaTempoAtendimento(paciente, tempoAtual, tempoAtual + procedimento->tempoMedio);
-        avancaEstadoPaciente(escalonador, paciente, tempoAtual + procedimento->tempoMedio, proximoEvento, filas, filaDestino);
+        printf("Paciente %s completou parte do procedimento ID %d (Tempo Médio: %.2f horas).\n",
+               paciente->id, procedimento->id, tempoProcedimento);
     } else {
         fprintf(stderr, "Erro: Nenhuma unidade disponível para o procedimento %d\n", procedimento->id);
     }
 }
 
 int main() {
+    int condicaoTermino = 0;
+
+    //Estrutura do Arquivo
     const char *dadosProcedimento[] = {
-        "0.2 3", "0.5 5", "0.1 10", "0.05 5", "0.5 20", "0.05 5"
+        "0.2 3", // triagem - linha 1
+        "0.5 5", // atendimento  - linha 2
+        "0.1 10", // mh (medidas hospitalares) - linha 3
+        "0.05 5", // tl (teste de laboratório)  - linha 4
+        "0.5 20", // ei (exames) - linha 5
+        "0.05 5" // im (medicamentos) - linha 6
     };
+
+    const char *dadosNumeroPacientes[] = {
+        "10" // linha 7
+    };
+
     const char *dadosPacientes[] = {
-        "0009600008 0 2017 3 21 2 0 5 43 2 110", "0009600009 0 2017 3 21 2 0 3 1 5 21",
-        "0009600010 0 2017 3 21 2 1 3 4 2 8", "0009600011 0 2017 3 21 2 1 15 28 4 68",
-        "0009600012 0 2017 3 21 2 0 3 2 7 9", "0009600013 1 2017 3 21 3 0 2 2 2 8",
-        "0009600015 1 2017 3 21 3 0 1 3 1 4", "0009600016 0 2017 3 21 3 0 5 14 1 28",
-        "0009600017 1 2017 3 21 4 0 1 0 0 0", "0009600018 0 2017 3 21 4 1 2 8 3 11"
+        "0009600008 0 2017 3 21 2 0 5 43 2 110", //linha 8 
+        "0009600009 0 2017 3 21 2 0 3 1 5 21", //linha 9
+        "0009600010 0 2017 3 21 2 1 3 4 2 8", //linha 10
+        "0009600011 0 2017 3 21 2 1 15 28 4 68", //linha 11
+        "0009600012 0 2017 3 21 2 0 3 2 7 9", //linha 12
+        "0009600013 1 2017 3 21 3 0 2 2 2 8", //linha 13
+        "0009600015 1 2017 3 21 3 0 1 3 1 4", //linha 14
+        "0009600016 0 2017 3 21 3 0 5 14 1 28", //linha 15
+        "0009600017 1 2017 3 21 4 0 1 0 0 0", //linha 16
+        "0009600018 0 2017 3 21 4 1 2 8 3 11" //linha 17
     };
 
     float tempoAtual = 0.0f;
+    
+    // Inicializa o escalonador
     Escalonador escalonador;
-    inicializaEscalonador(&escalonador, 1000);
+    inicializaEscalonador(&escalonador, 1000); //100 número arbitrário
 
+    // Inicializa as filas
     Fila filas[MAX_FILAS_ENUM];
     for (int i = 0; i < MAX_FILAS_ENUM; i++) {
         Inicializa(&filas[i]);
     }
 
+    // Inicializa os procedimentos
     Procedimento procedimentos[MAX_PROCEDIMENTOS_ENUM];
     for (int i = 0; i < MAX_PROCEDIMENTOS_ENUM; i++) {
         inicializaProcedimentoComLinha(&procedimentos[i], dadosProcedimento[i], i);
     }
 
-    int totalPacientes = sizeof(dadosPacientes) / sizeof(dadosPacientes[0]);
-    Paciente *pacientes = (Paciente *)malloc(totalPacientes * sizeof(Paciente));
+    // Inicializa pacientes
+    int totalPacientes = atoi(dadosNumeroPacientes[0]); //Colaca em formato de número o número total de pacientes
+    Paciente *pacientes = (Paciente *)malloc(totalPacientes * sizeof(Paciente)); //Alocar memória para os pacientes
     if (!pacientes) {
         perror("Erro ao alocar memória para pacientes");
         return EXIT_FAILURE;
     }
 
+    printf("=== Inicialização dos Pacientes e Evento ===\n\n");
+
     for (int i = 0; i < totalPacientes; i++) {
         inicializaPaciente(&pacientes[i], dadosPacientes[i]);
+        printf("Paciente %d inicializado:\n", i + 1);
         float tempoEntrada = transformaHoras(
             pacientes[i].ano, pacientes[i].mes, pacientes[i].dia, pacientes[i].hora
         );
         pacientes[i].horaEntrada = tempoEntrada;
+        imprimeEstadoPaciente(&pacientes[i]);
+
         Evento eventoInicial = criaEvento(tempoEntrada, EVENTO_CHEGADA, &pacientes[i]);
         insereEvento(&escalonador, eventoInicial);
     }
 
-while (escalonador.tamanho > 0) {
+printf("=== Início da Simulação ===\n\n");
+while (!condicaoTermino) {
+    if (escalonador.tamanho == 0) {
+        condicaoTermino = 1; // Termina a execução se o escalonador estiver vazio
+        break;
+    }
+
     Evento evento;
-    if (!retiraProximoEvento(&escalonador, &evento)) break;
+    if (!retiraProximoEvento(&escalonador, &evento)) {
+        fprintf(stderr, "Erro ao retirar evento do escalonador\n");
+        break;
+    }
 
     tempoAtual = evento.tempo;
 
@@ -130,53 +222,50 @@ while (escalonador.tamanho > 0) {
             break;
 
         case EVENTO_TRIAGEM:
-            processaProcedimento(&escalonador, evento.paciente, &procedimentos[TRIAGEM], tempoAtual, EVENTO_ATENDIMENTO,
-                                 filas, FILA_ATEND_PRIORIDADE_2 - evento.paciente->prioridade);
+            processaProcedimento(&escalonador, evento.paciente, &procedimentos[TRIAGEM], tempoAtual, EVENTO_ATENDIMENTO, filas, FILA_ATEND_PRIORIDADE_2 - evento.paciente->prioridade);
+            avancaEstadoPaciente(&escalonador, evento.paciente, tempoAtual + procedimentos[TRIAGEM].tempoMedio, EVENTO_ATENDIMENTO, filas, FILA_ATEND_PRIORIDADE_2 - evento.paciente->prioridade);
             break;
 
         case EVENTO_ATENDIMENTO:
-            processaProcedimento(&escalonador, evento.paciente, &procedimentos[ATEND], tempoAtual, 
-                                 EVENTO_MEDIDAS, filas, FILA_MH_PRIORIDADE_2 - evento.paciente->prioridade);
+            processaProcedimento(&escalonador, evento.paciente, &procedimentos[ATEND], tempoAtual, EVENTO_MEDIDAS, filas, FILA_MH_PRIORIDADE_2 - evento.paciente->prioridade);
+            avancaEstadoPaciente(&escalonador, evento.paciente, tempoAtual + procedimentos[ATEND].tempoMedio, EVENTO_MEDIDAS, filas, FILA_MH_PRIORIDADE_2 - evento.paciente->prioridade);
             break;
 
         case EVENTO_MEDIDAS:
             if (evento.paciente->medidas > 0) {
                 evento.paciente->medidas--;
-                processaProcedimento(&escalonador, evento.paciente, &procedimentos[MH], tempoAtual, 
-                                     EVENTO_MEDIDAS, filas, FILA_MH_PRIORIDADE_2 - evento.paciente->prioridade);
+                processaProcedimento(&escalonador, evento.paciente, &procedimentos[MH], tempoAtual, EVENTO_MEDIDAS, filas, FILA_MH_PRIORIDADE_2 - evento.paciente->prioridade);
+                avancaEstadoPaciente(&escalonador, evento.paciente, tempoAtual + procedimentos[MH].tempoMedio, EVENTO_MEDIDAS, filas, FILA_MH_PRIORIDADE_2 - evento.paciente->prioridade);
             } else {
-                avancaEstadoPaciente(&escalonador, evento.paciente, tempoAtual, EVENTO_TESTES, 
-                                     filas, FILA_TL_PRIORIDADE_2 - evento.paciente->prioridade);
+                avancaEstadoPaciente(&escalonador, evento.paciente, tempoAtual, EVENTO_TESTES, filas, FILA_TL_PRIORIDADE_2 - evento.paciente->prioridade);
             }
             break;
 
         case EVENTO_TESTES:
             if (evento.paciente->testes > 0) {
                 evento.paciente->testes--;
-                processaProcedimento(&escalonador, evento.paciente, &procedimentos[TL], tempoAtual, 
-                                     EVENTO_TESTES, filas, FILA_TL_PRIORIDADE_2 - evento.paciente->prioridade);
+                processaProcedimento(&escalonador, evento.paciente, &procedimentos[TL], tempoAtual, EVENTO_TESTES, filas, FILA_TL_PRIORIDADE_2 - evento.paciente->prioridade);
+                avancaEstadoPaciente(&escalonador, evento.paciente, tempoAtual + procedimentos[TL].tempoMedio, EVENTO_TESTES, filas, FILA_TL_PRIORIDADE_2 - evento.paciente->prioridade);
             } else {
-                avancaEstadoPaciente(&escalonador, evento.paciente, tempoAtual, EVENTO_EXAME, 
-                                     filas, FILA_EI_PRIORIDADE_2 - evento.paciente->prioridade);
+                avancaEstadoPaciente(&escalonador, evento.paciente, tempoAtual, EVENTO_EXAME, filas, FILA_EI_PRIORIDADE_2 - evento.paciente->prioridade);
             }
             break;
 
         case EVENTO_EXAME:
             if (evento.paciente->exames > 0) {
                 evento.paciente->exames--;
-                processaProcedimento(&escalonador, evento.paciente, &procedimentos[EI], tempoAtual, 
-                                     EVENTO_EXAME, filas, FILA_EI_PRIORIDADE_2 - evento.paciente->prioridade);
+                processaProcedimento(&escalonador, evento.paciente, &procedimentos[EI], tempoAtual, EVENTO_EXAME, filas, FILA_EI_PRIORIDADE_2 - evento.paciente->prioridade);
+                avancaEstadoPaciente(&escalonador, evento.paciente, tempoAtual + procedimentos[EI].tempoMedio, EVENTO_EXAME, filas, FILA_EI_PRIORIDADE_2 - evento.paciente->prioridade);
             } else {
-                avancaEstadoPaciente(&escalonador, evento.paciente, tempoAtual, EVENTO_MEDICAMENTO, 
-                                     filas, FILA_IM_PRIORIDADE_2 - evento.paciente->prioridade);
+                avancaEstadoPaciente(&escalonador, evento.paciente, tempoAtual, EVENTO_MEDICAMENTO, filas, FILA_IM_PRIORIDADE_2 - evento.paciente->prioridade);
             }
             break;
 
         case EVENTO_MEDICAMENTO:
             if (evento.paciente->medicamentos > 0) {
                 evento.paciente->medicamentos--;
-                processaProcedimento(&escalonador, evento.paciente, &procedimentos[IM], tempoAtual, 
-                                     EVENTO_MEDICAMENTO, filas, FILA_IM_PRIORIDADE_2 - evento.paciente->prioridade);
+                processaProcedimento(&escalonador, evento.paciente, &procedimentos[IM], tempoAtual, EVENTO_MEDICAMENTO, filas, FILA_IM_PRIORIDADE_2 - evento.paciente->prioridade);
+                avancaEstadoPaciente(&escalonador, evento.paciente, tempoAtual + procedimentos[IM].tempoMedio, EVENTO_MEDICAMENTO, filas, FILA_IM_PRIORIDADE_2 - evento.paciente->prioridade);
             } else {
                 avancaEstadoPaciente(&escalonador, evento.paciente, tempoAtual, EVENTO_ALTA, filas, 0);
             }
@@ -185,6 +274,8 @@ while (escalonador.tamanho > 0) {
         case EVENTO_ALTA:
             evento.paciente->horaSaida = tempoAtual;
             evento.paciente->tempoTotal = tempoAtual - evento.paciente->horaEntrada;
+            evento.paciente->estado = 14; // Alta hospitalar
+            printf("Paciente %s recebeu alta no tempo %.2f\n", evento.paciente->id, tempoAtual);
             break;
 
         default:
@@ -193,6 +284,17 @@ while (escalonador.tamanho > 0) {
     }
 }
 
+printf("\nResumo de Tempos por Paciente:\n");
+for (int i = 0; i < totalPacientes; i++) {
+    printf("Paciente %s:\n", pacientes[i].id);
+    printf("  Tempo Total no Hospital: %.2f horas\n", pacientes[i].tempoTotal);
+    printf("  Tempo Total de Atendimento: %.2f horas\n", pacientes[i].tempoAtendimento);
+    printf("  Tempo Total de Espera: %.2f horas\n", pacientes[i].tempoEspera);
+    printf("  Medidas Restantes: %d\n", pacientes[i].medidas);
+    printf("  Testes Restantes: %d\n", pacientes[i].testes);
+    printf("  Exames Restantes: %d\n", pacientes[i].exames);
+    printf("  Medicamentos Restantes: %d\n\n", pacientes[i].medicamentos);
+}
 
     FILE *saida = fopen("saida.txt", "w");
     if (!saida) {
